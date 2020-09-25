@@ -19,6 +19,10 @@
 
 #define LOG_GL_NOTIFICATIONS
 
+void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
+	glViewport(0, 0, width, height);
+}
+
 /*
 	Handles debug messages from OpenGL
 	https://www.khronos.org/opengl/wiki/Debug_Output#Message_Components
@@ -54,6 +58,9 @@ void GlDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 GLFWwindow* window;
 
 bool initGLFW() {
+	// Set our window resized callback
+	glfwSetWindowSizeCallback(window, GlfwWindowResizedCallback);
+
 	if (glfwInit() == GLFW_FALSE) {
 		LOG_ERROR("Failed to initialize GLFW");
 		return false;
