@@ -19,9 +19,7 @@
 
 #define LOG_GL_NOTIFICATIONS
 
-void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
-	glViewport(0, 0, width, height);
-}
+
 
 /*
 	Handles debug messages from OpenGL
@@ -57,9 +55,11 @@ void GlDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 
 GLFWwindow* window;
 
+void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
+	glViewport(0, 0, width, height);
+}
+
 bool initGLFW() {
-	// Set our window resized callback
-	glfwSetWindowSizeCallback(window, GlfwWindowResizedCallback);
 
 	if (glfwInit() == GLFW_FALSE) {
 		LOG_ERROR("Failed to initialize GLFW");
@@ -69,6 +69,9 @@ bool initGLFW() {
 	//Create a new GLFW window
 	window = glfwCreateWindow(800, 800, "INFR1350U", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
+
+	// Set our window resized callback
+	glfwSetWindowSizeCallback(window, GlfwWindowResizedCallback);
 
 	return true;
 }
@@ -156,7 +159,7 @@ int main() {
 	};
 
 	//VBO - Vertex buffer object
-	GLuint pos_vbo = 0;
+	/* GLuint pos_vbo = 0;
 	glGenBuffers(1, &pos_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, pos_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
@@ -164,9 +167,14 @@ int main() {
 	GLuint color_vbo = 1;
 	glGenBuffers(1, &color_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, color_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW); */
 
-	glBindBuffer(GL_ARRAY_BUFFER, pos_vbo);
+	VertexBuffer* posVbo = new VertexBuffer();
+	posVbo->LoadData(points, 9);
+	VertexBuffer* color_vbo = new VertexBuffer();
+	color_vbo->LoadData(colors, 9);
+
+	 /* glBindBuffer(GL_ARRAY_BUFFER, pos_vbo);
 
 	//						index, size, type, normalize?, stride, pointer
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -175,12 +183,57 @@ int main() {
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
 	glEnableVertexAttribArray(0);//pos
-	glEnableVertexAttribArray(1);//colors
+	glEnableVertexAttribArray(1);//colors */
+
+	VertexArrayObject* vao = new VertexArrayObject();
+	vao->AddVertexBuffer(posVbo, {
+		BufferAttribute{ 0, 3, GL_FLOAT, false, 0, NULL }
+		});
+	vao->AddVertexBuffer(color_vbo, {
+		BufferAttribute{ 1, 3, GL_FLOAT, false, 0, NULL }
+		});
+
+	static const float interleaved[] = {
+		// X Y Z R G B
+		0.7f, -0.2f, 0.5f, 0.0f, 0.0f, 0.0f,
+		0.7f, 0.7f, 0.5f, 0.3f, 0.2f, 0.5f,
+		-0.2f, 0.7f, 0.5f, 1.0f, 1.0f, 0.0f,
+		0.7f, 1.0f, 0.5f, 1.0f, 1.0f, 1.0f
+	};
+
+	VertexBuffer* interleaved_vbo = new VertexBuffer();
+	interleaved_vbo->LoadData(interleaved, 6 * 4);
+
+	static const uint16_t indices[] = {
+		0, 1, 2,
+		1, 3, 2
+	};
+	IndexBuffer* interleaved_ibo = new IndexBuffer();
+	interleaved_ibo->LoadData(indices, 3 * 2);
+
+	size_t stride = sizeof(float) * 6;
+	VertexArrayObject* vao2 = new VertexArrayObject();
+	vao2->AddVertexBuffer(interleaved_vbo, {
+	BufferAttribute(0, 3, GL_FLOAT, false, stride, 0),
+	BufferAttribute(1, 3, GL_FLOAT, false, stride, sizeof(float) * 3),
+		});
+	vao2->SetIndexBuffer(interleaved_ibo);
 
 	// Load our shaders
-
+	/*
 	if (!loadShaders())
 		return 1;
+	*/
+
+	Shader* shader = new Shader();
+	shader->LoadShaderPartFromFile("shaders/vertex_shader.glsl", GL_VERTEX_SHADER);
+	shader->LoadShaderPartFromFile("shaders/frag_shader.glsl", GL_FRAGMENT_SHADER);
+	shader->Link();
+
+	Shader* shader2 = new Shader();
+	shader2->LoadShaderPartFromFile("shaders/vertex_shader.glsl", GL_VERTEX_SHADER);
+	shader2->LoadShaderPartFromFile("shaders/frag_shader2.glsl", GL_FRAGMENT_SHADER);
+	shader2->Link();
 
 	// GL states
 	glEnable(GL_DEPTH_TEST);
@@ -201,12 +254,30 @@ int main() {
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glUseProgram(shader_program);
+		/* glUseProgram(shader_program);
 
+		glDrawArrays(GL_TRIANGLES, 0, 3); */
+
+		shader->Bind();
+		vao->Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		shader2->Bind();
+
+		vao2->Bind();
+		glDrawElements(GL_TRIANGLES, interleaved_ibo->GetElementCount(), interleaved_ibo->GetElementType(), nullptr);
+		vao2->UnBind();
 
 		glfwSwapBuffers(window);
 	}
+
+	delete shader;
+	delete vao2;
+	delete interleaved_ibo;
+	delete interleaved_vbo;
+	delete vao; 
+	delete posVbo;
+	delete color_vbo;
 
 	// Clean up the toolkit logger so we don't leak memory
 	Logger::Uninitialize();
