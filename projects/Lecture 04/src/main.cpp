@@ -81,9 +81,10 @@ GLfloat rotY = 0.0f;
 
 void keyboard() {
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-		rotY += 0.01;
+		rotY += 1.0f;
+
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-		rotY -= 0.01;
+		rotY -= 1.0f;
 }
 
 
@@ -101,7 +102,7 @@ int main() {
 	static const GLfloat points[] = {
 		-0.5f, -0.5f, 0.0f,
 		0.5f, -0.5f, 0.0f,
-		-0.5f, 0.5f, 0.0f
+		0.0f, 0.5f, 0.0f
 	};
 
 	static const GLfloat colors[] = {
@@ -139,7 +140,7 @@ int main() {
 
 	//Lecture 4 starts here
 
-	//Projection matrix - 45 degrees FoV, ratio, range 0.1 - 100 units
+	//projection matrix - 45 degress FOV, ratio, range 0.1 - 100 units
 	int width, height;
 	glfwGetWindowSize(window, &width, &height);
 
@@ -148,32 +149,31 @@ int main() {
 
 	//Camera
 	glm::mat4 View = glm::lookAt(
-	glm::vec3(0, 0, 3),//Camera Position
-	glm::vec3(0, 0, 0), //Camera looks at the origin
-	glm::vec3(0, 1, 0)//Up vector
+		glm::vec3(0, 0, 3), //Camera position
+		glm::vec3(0, 0, 0), //Camera looks at the origin
+		glm::vec3(0, 1, 0) //up vector
 	);
 
-	//Model matrix
-	glm::mat4 Model = glm::mat4(1.0f); //reseting the matrix
+	//Model Matrix
+	glm::mat4 Model = glm::mat4(1.0f); //resetting the matrix
 
 	Model = glm::translate(Model, glm::vec3(0.0f, 0.0f, 0.0f));
-	Model = glm::rotate(Model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	Model = glm::rotate(Model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); //rotate here
 	Model = glm::scale(Model, glm::vec3(1.0f, 1.0f, 1.0f));
 
-	// T * R * S < -- from the right
+	// T * R * S <-- from the right
 
 	glm::mat4 mvp = Projection * View * Model;
 
-	//Handle for our mvp matrix (uniform variable)
+	//handle for our mvp matrix (uniform variable)
 	GLuint MatrixID = glGetUniformLocation(shader_program, "MVP");
-
 
 	// GL states
 	glEnable(GL_DEPTH_TEST);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	//Face culling
+	// Face culling
 	//glEnable(GL_CULL_FACE);
 	//glFrontFace(GL_CCW);
 	//glCullFace(GL_BACK);
@@ -187,14 +187,16 @@ int main() {
 
 		glUseProgram(shader_program);
 
-		//Lecture 4
+		//Lecture 04
 		Model = glm::mat4(1.0f);
-		keyboard();
-		Model = glm::rotate(Model, glm::radians(rotY), glm::vec3(0, 1.0f, 0.0f));
+		keyboard(); //roty = 0.1, 0.2, 0.3
+		Model = glm::translate(Model, glm::vec3(0.0f, 0.5f, 0.0f));
+		Model = glm::rotate(Model, glm::radians(rotY), glm::vec3(0.0f, 0.0f, 1.0f)); //rotate here
+		Model = glm::translate(Model, glm::vec3(0.0f, -0.5f, 0.0f));
 		mvp = Projection * View * Model;
 		//rotY = 0.0;
 
-
+		//Send mvp matrix to GPU
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 		
 		glDrawArrays(GL_TRIANGLES, 0, 3);

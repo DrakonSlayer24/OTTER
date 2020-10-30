@@ -5,7 +5,7 @@ layout(location = 1) in vec3 inColor;
 layout(location = 1) out vec3 outColor;
 
 //Lecture 04
-unfirom mat4 MVP;
+uniform mat4 MVP;
 
 void main() {
 	// vertex position in clip space
